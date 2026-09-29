@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="theme-color" content="#0A0E13">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<title>RM Wheel</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=B612+Mono:wght@400;700&family=Saira+Condensed:wght@800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/css/wheel.css">
+</head>
+<body>
+<canvas id="hudcv" aria-label="Visor HUD"></canvas>
+<p id="hudwait">The visor HUD shows here once the game is open on the computer</p>
+<div class="pedal slide" id="brake" role="slider" aria-label="Brake" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><i class="fill"></i><span>Brake <b></b></span></div>
+<div class="pedal slide" id="gas" role="slider" aria-label="Gas" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><i class="fill"></i><span>Gas <b></b></span></div>
+<div class="status"><span class="dot" id="dot"></span><span id="conn">Connecting…</span> · <span id="ang">0°</span></div>
+<div class="bar">
+  <button id="bRun" class="primary">Start</button><button id="bDrop">Hazard</button><button id="bCam">View</button><button id="bCal">Centre</button>
+  <button id="bSetup">Setup</button><button id="bLock" class="more" hidden>Lock 45°</button><button id="bInv" class="more" hidden>Invert</button><button id="bFfb" class="more" hidden>Feedback</button>
+</div>
+<div class="glow" id="glow"></div>
+<div id="rearfx" aria-hidden="true"></div>
+<p id="recenter" aria-live="polite">Centred</p>
+<div class="sheet" id="sheet">
+  <div>
+    <h1>RM Wheel</h1>
+    <p>Hold the phone sideways like a steering wheel, screen facing you. Tilt it left and right to steer. Brake and gas are slides: put your left thumb (brake) or right thumb (gas) on its edge and slide up for more; let go to release. The brake is short: full braking a little below halfway up.</p>
+    <button id="go">Tap to start</button>
+    <p id="sheetMsg"></p>
+  </div>
+</div>
+<script src="/hud.js"></script>
+<script src="/js/wheel.js"></script>
+</body>
+</html>

@@ -1,0 +1,10 @@
+Engine loops in this folder are cut, pitch-flattened and looped from these recordings
+(tools/engine_samples.py). The derived loops keep the source licences:
+
+idle.wav  <-  Maserati GranTurismo S Exhaust.ogg - lmartins (freesound.org/people/lmartins/sounds/465453), CC BY 4.0
+low.wav  <-  Maserati GranTurismo S Exhaust.ogg - lmartins (freesound.org/people/lmartins/sounds/465453), CC BY 4.0
+high.wav  <-  Maserati GranTurismo S Exhaust.ogg - lmartins (freesound.org/people/lmartins/sounds/465453), CC BY 4.0
+load.wav  <-  Bentley-Speed-8-2003.ogg - Edvvc (commons.wikimedia.org/wiki/User:Edvvc), CC BY-SA 3.0
+
+CC BY 4.0: https://creativecommons.org/licenses/by/4.0/
+CC BY-SA 3.0: https://creativecommons.org/licenses/by-sa/3.0/ (load.wav is shared under the same licence)

@@ -1,0 +1,22 @@
+{
+ "idle": {
+  "rpm": 826.3,
+  "role": "idle, off load",
+  "src": "maserati"
+ },
+ "low": {
+  "rpm": 1922.1,
+  "role": "low revs, light load",
+  "src": "maserati"
+ },
+ "high": {
+  "rpm": 4123.0,
+  "role": "free revving, off throttle",
+  "src": "maserati"
+ },
+ "load": {
+  "rpm": 3901.8,
+  "role": "racing V8 pulling hard, full throttle",
+  "src": "bentley"
+ }
+}

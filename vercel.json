@@ -1,0 +1,41 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": null,
+  "buildCommand": "node tools/hud.js public/hud.js",
+  "outputDirectory": "public",
+  "cleanUrls": true,
+  "rewrites": [
+    {
+      "source": "/",
+      "destination": "/game"
+    },
+    {
+      "source": "/ws",
+      "destination": "/api/ws"
+    },
+    {
+      "source": "/info",
+      "destination": "/api/info"
+    },
+    {
+      "source": "/qr.svg",
+      "destination": "/api/qr"
+    }
+  ],
+  "headers": [
+    {
+      "source": "/(.*)\\.(js|css|wasm)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=0, must-revalidate"
+        }
+      ]
+    }
+  ],
+  "functions": {
+    "api/ws.js": {
+      "maxDuration": 300
+    }
+  }
+}

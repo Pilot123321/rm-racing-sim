@@ -1,0 +1,10 @@
+# upload only what the site needs to Vercel: never certs/ (pairing key, local IP), logs, venv or sources
+/*
+!/public
+!/api
+!/tools
+/tools/*
+!/tools/hud.js
+!/vercel.json
+!/package.json
+!/package-lock.json

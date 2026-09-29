@@ -1,0 +1,210 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="description" content="A look-ahead radar HUD for F1 in the wet: see stopped cars, marshals and hazards around blind corners before they become critical.">
+<meta name="theme-color" content="#0A0A0C">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<title>RM</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=B612:wght@400;700&family=B612+Mono:wght@400;700&family=Saira+Condensed:wght@600;800&family=Titillium+Web:ital,wght@0,400;0,600;0,700;0,900;1,600;1,700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/css/game.css">
+<style>[hidden]{display:none!important}body{margin:0}img{max-width:100%}</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header class="topbar">
+    <h1 class="brand" aria-label="RM">R<span>M</span></h1>
+    <nav class="tabs" role="tablist" aria-label="Sections">
+      <button role="tab" id="tabDrive" data-view="drive" aria-selected="true">Drive</button>
+      <button role="tab" id="tabSetup" data-view="setup" aria-selected="false">Setup</button>
+      <button role="tab" id="tabPhone" data-view="phone" aria-selected="false" hidden>Phone</button>
+      <button role="tab" id="tabCircuit" data-view="circuit" aria-selected="false">Circuit</button>
+    </nav>
+  </header>
+
+  <section class="stage" id="stage" aria-label="Driver's view simulation" tabindex="-1">
+    <canvas id="gl"></canvas>
+    <div id="sprayfx" aria-hidden="true"></div>
+    <canvas id="drops" aria-hidden="true"></canvas>
+    <div id="rearfx" aria-hidden="true"></div>
+    <div id="combiner" aria-hidden="true"></div>
+    <canvas id="hud"></canvas>
+    <div id="visor" aria-hidden="true"></div>
+    <div class="flash" id="flash"></div>
+    <div class="status" id="status"></div>
+    <div class="toast" id="toast" hidden></div>
+    <button class="drop" id="dropBtn" hidden>Drop hazard ahead · X</button>
+    <div class="stagebtns">
+      <button class="pcvisor" id="pcVisor" aria-pressed="false" title="Show the visor HUD on this screen (V)">Visor HUD <b>Off</b></button>
+    </div>
+    <div class="touch" id="touch" hidden>
+      <div><button data-k="left" aria-label="Steer left">◀</button><button data-k="right" aria-label="Steer right">▶</button></div>
+      <div><button data-k="brake">Brake</button><button data-k="gas">Gas</button></div>
+    </div>
+    <div class="card" id="introCard">
+      <p class="c-ref" id="iRef"></p>
+      <h2 class="c-title" id="iTitle"></h2>
+      <p class="c-blurb" id="iBlurb"></p>
+      <p class="c-meta" id="iMeta"></p>
+      <div class="c-actions"><button class="btn primary" id="iStart">Start · Enter</button></div>
+    </div>
+    <div class="card" id="resultCard" hidden>
+      <p class="c-ref" id="rRef"></p>
+      <h2 class="verdict" id="rVerdict"></h2>
+      <dl class="metrics" id="rMetrics"></dl>
+      <div class="c-actions"><button class="btn primary" id="rFlip"></button><button class="btn" id="rSame">Same again</button></div>
+    </div>
+  </section>
+
+  <div class="view" data-view="setup" role="tabpanel" aria-labelledby="tabSetup">
+  <section class="controls" id="controls">
+    <div class="opts" id="opts">
+      <div class="opt"><span class="opt-l">Driver</span><div class="seg" role="group" aria-label="Driver"><button id="drvYou" aria-pressed="true">You drive</button><button id="drvModel" aria-pressed="false">Autopilot</button></div></div>
+      <div class="opt"><span class="opt-l">Steering</span><div class="seg" role="group" aria-label="Steering"><button id="stAssist" aria-pressed="true">Lane assist</button><button id="stFull" aria-pressed="false">Full</button></div></div>
+      <div class="opt rain ctl"><label class="opt-l" for="tc">Traction control<output id="tcOut">6</output></label><input type="range" id="tc" min="0" max="12" step="1" value="6">
+        <details class="tune"><summary>Custom</summary><div class="pop">
+          <label>Slip target<output id="tcTOut"></output><input type="range" id="tcT" min="3" max="30" step="0.5"></label>
+          <label>Response<output id="tcGOut"></output><input type="range" id="tcG" min="0.25" max="2.5" step="0.05"></label></div></details></div>
+      <div class="opt rain ctl"><label class="opt-l" for="abs">ABS<output id="absOut">6</output></label><input type="range" id="abs" min="0" max="12" step="1" value="0">
+        <details class="tune"><summary>Custom</summary><div class="pop">
+          <label>Slip target<output id="absTOut"></output><input type="range" id="absT" min="3" max="25" step="0.5"></label>
+          <label>Response<output id="absGOut"></output><input type="range" id="absG" min="0.25" max="2.5" step="0.05"></label></div></details></div>
+      <div class="opt rain ctl"><label class="opt-l" for="bb">Brake balance<output id="bbOut">57.0% front</output></label><input type="range" id="bb" min="50" max="65" step="0.5" value="57"></div>
+      <div class="opt"><span class="opt-l">Keyboard brake</span><div class="seg" role="group" aria-label="Keyboard brake"><button id="kbFoot" aria-pressed="true" title="A key is all-or-nothing: ease off like a driver's foot when a wheel starts to lock">Driver's foot</button><button id="kbFull" aria-pressed="false" title="Full pedal while the key is held">Full pedal</button></div></div>
+      <div class="opt"><span class="opt-l">Nav radar</span><div class="seg" role="group" aria-label="Nav radar"><button id="hudOn" aria-pressed="true">On</button><button id="hudOff" aria-pressed="false">Off</button></div></div>
+      <div class="opt"><span class="opt-l">Visor light</span><div class="seg" role="group" aria-label="Visor light"><button id="visOn" aria-pressed="true">On</button><button id="visOff" aria-pressed="false">Off</button></div></div>
+      <div class="opt"><span class="opt-l">Traffic</span><div class="seg" role="group" aria-label="Traffic in free drive"><button id="tr6" aria-pressed="false">6</button><button id="tr12" aria-pressed="true">12</button><button id="tr20" aria-pressed="false">20</button></div></div>
+      <div class="opt"><span class="opt-l">View</span><div class="seg" role="group" aria-label="Camera"><button id="camCock" aria-pressed="true">Cockpit</button><button id="camChase" aria-pressed="false">Chase</button></div></div>
+      <div class="opt"><span class="opt-l">Tyres</span><div class="seg tyres" role="group" aria-label="Tyre compound"><button id="tyAuto" aria-pressed="true">Auto</button><button id="ty0" aria-pressed="false"><i class="tc c0"></i>Soft</button><button id="ty1" aria-pressed="false"><i class="tc c1"></i>Med</button><button id="ty2" aria-pressed="false"><i class="tc c2"></i>Hard</button><button id="ty3" aria-pressed="false"><i class="tc c3"></i>Inter</button><button id="ty4" aria-pressed="false"><i class="tc c4"></i>Wet</button></div></div>
+      <div class="opt rain"><label class="opt-l" for="rain">Rain<output id="rainOut">60%</output></label><input type="range" id="rain" min="0" max="100" value="0"></div>
+      <div class="opt rain"><label class="opt-l" for="fog">Fog<output id="fogOut">Clear</output></label><input type="range" id="fog" min="0" max="100" value="0"></div>
+      <div class="opt"><span class="opt-l">Sound</span><div class="seg" role="group" aria-label="Sound"><button id="sndOn" aria-pressed="false">On</button><button id="sndOff" aria-pressed="true">Off</button></div></div>
+      <div class="run-wrap"><button class="btn primary" id="runBtn">Start run</button></div>
+    </div>
+    <section class="panel mp-panel" aria-labelledby="mpH">
+      <div class="panel-h"><h2 id="mpH">Race online</h2><p>Share a room code and race each other on the same circuit. On this Wi-Fi, friends open this computer's address; on the website, anyone anywhere. You can crash into each other.</p></div>
+      <div class="mp-row">
+        <label class="mp-f"><span>Your name</span><input id="mpName" maxlength="14" autocomplete="nickname" placeholder="Driver"></label>
+        <label class="mp-f"><span>Room code</span><input id="mpRoom" maxlength="12" autocomplete="off" placeholder="e.g. MONZA7"></label>
+        <button class="btn" id="mpNew">New room</button><button class="btn primary" id="mpJoin">Join</button><button class="btn" id="mpLeave" hidden>Leave</button>
+      </div>
+      <p class="mp-status" id="mpStatus" aria-live="polite">Not in a room. AI traffic drives with you.</p>
+      <ul class="mp-list" id="mpList"></ul>
+    </section>
+    <section class="panel keys-panel" aria-labelledby="keysH">
+      <div class="panel-h"><h2 id="keysH">Keyboard</h2><p>Or link a phone as the wheel.</p></div>
+      <dl class="keys" aria-label="Keyboard controls">
+        <div><dt>W / ↑</dt><dd>Throttle</dd></div>
+        <div><dt>S / ↓ / Space</dt><dd>Brake · hold when stopped to reverse</dd></div>
+        <div><dt>A D / ← →</dt><dd>Steer</dd></div>
+        <div><dt>X</dt><dd>Drop a hazard</dd></div>
+        <div><dt>[ ]</dt><dd>Traction control − / +</dd></div>
+        <div><dt>; '</dt><dd>ABS − / +</dd></div>
+        <div><dt>, .</dt><dd>Brake balance rear / front</dd></div>
+        <div><dt>+ / −</dt><dd>Zoom radar</dd></div>
+        <div><dt>C · N</dt><dd>Camera · HUD size</dd></div>
+        <div><dt>Esc</dt><dd>Close this sheet · stop the run</dd></div>
+      </dl>
+    </section>
+  </section>
+  </div>
+  <div class="view" data-view="phone" role="tabpanel" aria-labelledby="tabPhone">
+  <section class="panel" id="phonePanel" hidden aria-labelledby="phoneH">
+    <div class="panel-h">
+      <h2 id="phoneH">Phone wheel</h2>
+      <p>Scan the code with your phone's camera (iPhone or Android) and hold the phone sideways like a steering wheel. Tilt it to steer; slide your thumbs up the left (brake) and right (gas) edges.</p>
+    </div>
+    <div class="phone">
+      <img class="qr" id="qr" alt="QR code that opens the phone wheel page" width="180" height="180">
+      <div class="ph-info">
+        <p class="ph-status" id="phStatus">Waiting for a phone</p>
+        <dl class="ph-urls">
+          <div><dt id="lanH">Over Wi-Fi (same network)</dt><dd id="urlLan">—</dd><dd><small id="lanNote">The phone warns about the certificate once: tap Advanced, then Proceed. The gyro needs https.</small></dd></div>
+          <div id="usbRow"><dt>Over USB cable</dt><dd id="urlUsb">—</dd><dd><small id="usbState">Turn on USB debugging on the phone and plug it in. The server runs adb reverse for you.</small></dd></div>
+        </dl>
+      </div>
+      <div class="ph-live" aria-live="polite">
+        <div class="meter" id="mSteer"><span>Steering <b id="mSteerV">0°</b></span><div class="track"><div class="fill"></div></div></div>
+        <div class="meter" id="mGas"><span>Gas</span><div class="track"><div class="fill"></div></div></div>
+        <div class="meter" id="mBrake"><span>Brake</span><div class="track"><div class="fill"></div></div></div>
+        <p class="fine">Linking a phone switches to You drive with Full steering. Traction control and ABS keep their Setup levels.</p>
+      </div>
+    </div>
+  </section>
+
+  </div>
+  <div class="view" data-view="circuit" role="tabpanel" aria-labelledby="tabCircuit">
+  <section class="panel" aria-labelledby="circH">
+    <div class="panel-h">
+      <h2 id="circH">Circuit map</h2>
+      <p>Live map of the whole circuit: every car on track, hazards, and the stretch the radar is watching right now. Upload a circuit map or a photo of one and the track, the 3D street and the visor HUD are rebuilt from it, or draw a lap.</p>
+    </div>
+    <canvas id="miniMap" width="1200" height="600" aria-label="Live map of the current circuit"></canvas>
+    <div class="map-key" aria-hidden="true">
+      <span><i class="k-you"></i>You</span><span><i class="k-car"></i>Car</span><span><i class="k-hid"></i>Hidden from your eyes</span><span><i class="k-red"></i>Closing fast</span><span><i class="k-haz"></i>Hazard</span><span><i class="k-rad"></i>Radar look-ahead, 700 m</span>
+    </div>
+    <div class="circ">
+      <div class="circ-info">
+        <p class="c-ref">Current circuit</p>
+        <h3 id="cName">Grand Prix circuit</h3>
+        <dl class="cstats"><div><dt>Lap</dt><dd id="cLen">—</dd></div><div><dt>Corners</dt><dd id="cCorners">—</dd></div><div><dt>Longest straight</dt><dd id="cStraight">—</dd></div></dl>
+      </div>
+      <div class="circ-info">
+        <div class="dropzone" id="dropzone" role="button" tabindex="0" aria-label="Drop a circuit screenshot here, or choose one">
+          <svg viewBox="0 0 48 48" aria-hidden="true"><path d="M10 30c-4 0-6-3-6-6 0-5 5-7 9-5 1-6 6-9 11-9 7 0 11 6 11 11 5 0 8 3 8 7s-3 6-7 6" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/><path d="M24 44V24m-7 7 7-7 7 7" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <strong>Drop a circuit screenshot</strong>
+          <span>Drag it in from your desktop or the screenshot preview, or paste it with ⌘V. One coloured track line on a plain background works best.</span>
+        </div>
+        <div class="c-actions"><button class="btn" id="drawBtn">Draw circuit</button><button class="btn" id="defBtn">Default circuit</button></div>
+        <input type="file" id="fileIn" accept="image/*" hidden>
+      </div>
+    </div>
+    <p class="fine">F1 2022 car model by <a href="https://sketchfab.com/Blender458" style="color:inherit">Blender458</a>, <a href="https://creativecommons.org/licenses/by/4.0/" style="color:inherit">CC BY 4.0</a>. Asphalt and concrete textures by Poly Haven, CC0. The simulation is a simplified model, not a reconstruction of real accidents.</p>
+  </section>
+  </div>
+
+</div>
+
+<div class="dropall" id="dropAll" hidden aria-hidden="true"><div><strong>Drop to build the circuit</strong><span>The track line is traced from your screenshot</span></div></div>
+<div class="modal" id="builder" hidden role="dialog" aria-modal="true" aria-labelledby="bTitle">
+  <div class="sheet">
+    <div class="sheet-h"><h2 id="bTitle">Build a circuit</h2><button class="btn" id="bClose">Close</button></div>
+    <div class="seg" role="group" aria-label="Source"><button id="bTabUp" aria-pressed="true">From a map</button><button id="bTabDraw" aria-pressed="false">Draw</button></div>
+    <div class="b-body">
+      <div class="b-stage"><canvas id="bCanvas" width="780" height="520"></canvas><p class="b-hint" id="bHint"></p></div>
+      <div class="b-side">
+        <div class="c-actions" id="bUpActions"><button class="btn" id="bChoose">Browse…</button><button class="btn" id="bSample">Use sample map</button></div>
+        <div class="c-actions" id="bDrawActions" hidden><button class="btn" id="bClear">Clear drawing</button></div>
+        <label class="fld"><span class="opt-l">Name</span><input type="text" id="bName" value="My circuit" maxlength="40"></label>
+        <label class="fld"><span class="opt-l">Lap length<output id="bKmOut">4.5 km</output></span><input type="range" id="bKm" min="15" max="70" value="45"></label>
+        <div id="bPickWrap" class="fld">
+          <label class="fld"><span class="opt-l">Colour match<output id="bTolOut">60</output></span><input type="range" id="bTol" min="15" max="150" value="60"></label>
+          <div class="pick"><span class="swatch" id="bSwatch"></span><span id="bPickTxt">Auto: everything that is not background</span><button class="btn" id="bAuto">Auto</button></div>
+        </div>
+        <button class="btn" id="bRev">Reverse direction</button>
+        <p class="b-status" id="bStatus"></p>
+        <button class="btn primary" id="bBuild" disabled>Build circuit</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="/vendor/three.min.js"></script>
+<script src="/vendor/CopyShader.js"></script>
+<script src="/vendor/LuminosityHighPassShader.js"></script>
+<script src="/vendor/GammaCorrectionShader.js"></script>
+<script src="/vendor/EffectComposer.js"></script>
+<script src="/vendor/ShaderPass.js"></script>
+<script src="/vendor/RenderPass.js"></script>
+<script src="/vendor/UnrealBloomPass.js"></script>
+<script src="/vendor/RGBELoader.js"></script>
+<script src="/vendor/GLTFLoader.js"></script>
+<script src="/vendor/BufferGeometryUtils.js"></script>
+<script src="/f1car.js"></script>
+<script src="/js/game.js"></script>
+</body>
+</html>

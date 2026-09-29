@@ -1,0 +1,77 @@
+/* wheel.html: styles (moved out of the page) */
+:root{color-scheme:dark;--bg:#000;--panel:rgba(12,18,24,.72);--line:rgba(196,248,255,.28);--ink:#E3EBF0;--muted:#8B9BA8;--hud:#C4F8FF;--gas:#35D98A;--brake:#FF4B3A;--amb:#FFC247;
+  --mono:"B612 Mono",ui-monospace,Menlo,monospace;--disp:"Saira Condensed","Arial Narrow",sans-serif;}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+html,body{margin:0;height:100%;background:#000;color:var(--ink);font-family:var(--mono);overflow:hidden;
+  touch-action:none;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;overscroll-behavior:none;}
+#hudcv{position:fixed;inset:0;width:100%;height:100%;display:block;}
+#hudwait[hidden]{display:none;}
+#hudwait{position:fixed;inset:0;display:grid;place-items:center;margin:0;color:var(--muted);font-size:12px;letter-spacing:.06em;text-transform:uppercase;text-align:center;padding:0 30%;}
+/* see-through pedal zones over the HUD */
+.pedal{position:fixed;top:0;bottom:0;width:27%;display:flex;align-items:flex-end;justify-content:center;padding-bottom:max(14px,env(safe-area-inset-bottom));
+  font:800 clamp(22px,5vw,40px)/1 var(--disp);letter-spacing:.06em;text-transform:uppercase;color:var(--c);
+  background:linear-gradient(to top,color-mix(in srgb,var(--c) 14%,transparent),transparent 45%);border:0 solid var(--c);transition:background .06s;}
+#brake{--c:var(--brake);left:0;border-right-width:1px;border-right-color:color-mix(in srgb,var(--brake) 35%,transparent);padding-left:env(safe-area-inset-left);}
+#gas{--c:var(--gas);right:0;border-left-width:1px;border-left-color:color-mix(in srgb,var(--gas) 35%,transparent);padding-right:env(safe-area-inset-right);}
+.pedal.on{background:color-mix(in srgb,var(--c) 30%,transparent);}
+.bar{position:fixed;left:26%;right:26%;bottom:max(8px,env(safe-area-inset-bottom));display:flex;justify-content:safe center;align-items:center;gap:5px;flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;}
+.bar::-webkit-scrollbar{display:none;}
+.bar button{flex:none;}
+.bar button[hidden]{display:none;}
+.bar button{white-space:nowrap;appearance:none;border:1px solid var(--line);background:var(--panel);color:var(--ink);border-radius:999px;padding:6px clamp(5px,1vw,10px);font:700 clamp(9px,1.15vw,10.5px) var(--mono);letter-spacing:.03em;text-transform:uppercase;}
+.bar button.primary{background:var(--hud);color:#061016;border-color:var(--hud);}
+.bar button[aria-pressed=true]{background:var(--hud);color:#061016;}
+.status{position:fixed;right:max(12px,env(safe-area-inset-right));top:max(8px,env(safe-area-inset-top));bottom:auto;max-width:24%;text-align:right;font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);pointer-events:none;}
+.dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--brake);margin-right:6px;vertical-align:0;}
+.dot.ok{background:var(--gas);}
+.glow{position:fixed;inset:0;pointer-events:none;opacity:0;transition:opacity .35s ease;box-shadow:inset 0 0 0 4px var(--gc);--gc:var(--amb);}
+.sheet{position:fixed;inset:0;display:grid;place-items:center;background:rgba(5,8,11,.94);z-index:10;padding:24px;text-align:center;}
+.sheet[hidden]{display:none;}
+.sheet div{display:grid;gap:14px;max-width:520px;justify-items:center;}
+.sheet h1{margin:0;font:800 40px/1 var(--disp);text-transform:uppercase;letter-spacing:.02em;}
+.sheet p{margin:0;color:#B7C4CE;font-size:13px;line-height:1.5;}
+.sheet button{appearance:none;border:0;border-radius:12px;background:var(--hud);color:#061016;font:700 15px var(--mono);letter-spacing:.08em;text-transform:uppercase;padding:16px 28px;}
+.warn{color:var(--amb)!important;}
+
+
+/* car behind you inside 50 m: a strong glow on the screen edge it is coming from (bottom when it is straight
+   behind), brighter as it closes; a double flash when it first arrives, a quick pulse while it closes fast.
+   --l/--r/--b (0..1) and --rc (colour) are set from the simulation. */
+@property --l{syntax:"<number>";inherits:false;initial-value:0;}
+@property --r{syntax:"<number>";inherits:false;initial-value:0;}
+@property --b{syntax:"<number>";inherits:false;initial-value:0;}
+#rearfx{position:fixed;z-index:5;inset:0;pointer-events:none;--rc:196 248 255;
+  /* flat solid bands (hard stops, no fade): thicker as the car closes (up to 14 px) */
+  background:linear-gradient(to right,rgb(var(--rc) / .85) 0 calc(var(--l) * 14px),transparent 0),
+    linear-gradient(to left,rgb(var(--rc) / .85) 0 calc(var(--r) * 14px),transparent 0),
+    linear-gradient(to top,rgb(var(--rc) / .85) 0 calc(var(--b) * 14px),transparent 0);
+  transition:--l .25s ease,--r .25s ease,--b .25s ease;}
+#rearfx::after{content:"";position:absolute;inset:0;opacity:0;box-shadow:inset 0 0 0 5px rgb(var(--rc));}
+#rearfx.arrive::after{animation:rear-arrive .9s ease-out;}
+#rearfx.closing{animation:rear-pulse .6s ease-in-out infinite;}
+@keyframes rear-arrive{0%{opacity:0}12%{opacity:1}30%{opacity:.15}45%{opacity:.9}100%{opacity:0}}
+@keyframes rear-pulse{0%,100%{opacity:1}50%{opacity:.45}}
+@media (prefers-reduced-motion: reduce){#rearfx,#rearfx::after{animation:none!important;transition:none;}}
+
+/* a brief "Centred" tag when the wheel is re-centred */
+#recenter{position:fixed;left:50%;top:42%;transform:translate(-50%,-50%);margin:0;padding:8px 14px;border-radius:999px;background:rgba(0,0,0,.6);
+  color:var(--hud);font:700 12px var(--mono);letter-spacing:.12em;text-transform:uppercase;pointer-events:none;opacity:0;z-index:6;}
+#recenter.show{animation:rec-show 1s ease-out;}
+@keyframes rec-show{0%{opacity:0;transform:translate(-50%,-50%) scale(.9);}15%{opacity:1;transform:translate(-50%,-50%) scale(1);}70%{opacity:1;}100%{opacity:0;}}
+
+
+/* the glow layer only exists while a car is behind; on the phone it is not blended (blending a full-screen layer over
+   live video every frame is expensive on mobile GPUs) */
+#rearfx:not(.on){display:none;}
+body #rearfx{mix-blend-mode:normal;}
+/* gas slide: the fill rises with the throttle; tick marks at each quarter of the working travel (10 %-85 % of the height) */
+.pedal.slide{--g:0;--tr:75%;overflow:hidden;}
+.pedal.slide.on{background:linear-gradient(to top,color-mix(in srgb,var(--c) 14%,transparent),transparent 45%);}
+.pedal.slide .fill{position:absolute;left:0;right:0;bottom:0;height:calc(10% + var(--g) * var(--tr,75%));background:color-mix(in srgb,var(--c) 32%,transparent);
+  border-top:2px solid var(--c);opacity:calc(0.25 + var(--g));transition:height .04s linear;pointer-events:none;}
+.pedal.slide:not(.on) .fill{height:10%;border-top-color:transparent;}
+/* quarter marks along each pedal's own travel; the top one (full) runs across the strip */
+.pedal.slide .tick{position:absolute;left:0;width:26%;height:1px;background:var(--c);opacity:.45;pointer-events:none;}
+.pedal.slide .tick.full{width:100%;opacity:.6;}
+.pedal.slide span{position:relative;display:grid;gap:4px;justify-items:center;}
+.pedal.slide b{font-size:.55em;min-height:1em;color:#fff;}

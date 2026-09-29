@@ -1,0 +1,5 @@
+squeal.wav  <-  "Car tire squeal skid loop" by Tom Haigh (audible-edge, freesound.org/people/audible-edge),
+                via OpenGameArt (opengameart.org/content/car-tire-squeal-skid-loop), CC BY 3.0.
+                Resampled to 48 kHz / 16 bit and cross-faded end-to-start into a seamless loop.
+
+CC BY 3.0: https://creativecommons.org/licenses/by/3.0/

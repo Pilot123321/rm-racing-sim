@@ -1,0 +1,21 @@
+{
+  "name": "rm-racing-sim",
+  "version": "1.0.0",
+  "description": "Browser F1 simulator: C/C++ WebAssembly physics, visor HUD and 77 GHz radar concept, phone steering wheel, online multiplayer",
+  "main": "index.js",
+  "scripts": {
+    "start": "node server.js",
+    "setup:physics": "python3 -m venv .venv && .venv/bin/pip install ziglang numpy",
+    "build:physics": ".venv/bin/python tools/build.py",
+    "test": ".venv/bin/python tools/build.py && .venv/bin/python tools/test_physics.py && node tools/test_wheel.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "qrcode": "^1.5.4",
+    "redis": "^5.12.1",
+    "ws": "^8.22.0"
+  }
+}
