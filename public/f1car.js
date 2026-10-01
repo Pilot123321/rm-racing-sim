@@ -62,7 +62,7 @@
       }
     }
     h.putImageData(img, 0, 0);
-    const mk = (canvas, srgb) => { const t = new THREE.CanvasTexture(canvas); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(1 / 0.03, 1 / 0.03); t.anisotropy = 8; if (srgb) t.encoding = THREE.sRGBEncoding; return t; };
+    const mk = (canvas, srgb) => { const t = new THREE.CanvasTexture(canvas); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(1 / 0.016, 1 / 0.016); t.anisotropy = 8; if (srgb) t.encoding = THREE.sRGBEncoding; return t; };
     weave = { map: mk(cv, true), normal: mk(nv, false) };
     return weave;
   }
@@ -81,16 +81,105 @@
     return g;
   }
   function tyreGeo(r, w, seg) {
-    const THREE = T(), p = [], sw = w / 2, rr = 0.07;
+    const THREE = T(), p = [], sw = w / 2, rr = r * 0.12;
     // rounded-rectangle profile: inner rim -> sidewall -> shoulder -> tread -> other side
     const rim = r * 0.62;
     p.push(new THREE.Vector2(rim, -sw));
     for (let i = 0; i <= 6; i++) { const a = -Math.PI / 2 + (i / 6) * (Math.PI / 2); p.push(new THREE.Vector2(r - rr + Math.cos(a) * rr, -sw + rr + Math.sin(a) * rr)); }
     for (let i = 0; i <= 6; i++) { const a = (i / 6) * (Math.PI / 2); p.push(new THREE.Vector2(r - rr + Math.cos(a) * rr, sw - rr + Math.sin(a) * rr)); }
     p.push(new THREE.Vector2(rim, sw));
-    const g = new THREE.LatheGeometry(p, seg || 28); g.rotateZ(Math.PI / 2); // axle along x
+    const g = new THREE.LatheGeometry(p, seg || 64); g.rotateZ(Math.PI / 2); // axle along x
     return g;
   }
+
+  // UV u runs around the circumference; v follows the tyre profile. Keeping the
+  // tread and lettering on the rolling group makes slow motion visible too.
+  const treadCache = new Map();
+  function treadMaterial(compound) {
+    const THREE = T(), kind = compound === 4 ? 'wet' : compound === 3 ? 'inter' : 'slick';
+    if (treadCache.has(kind)) return treadCache.get(kind);
+    const cv = document.createElement('canvas'); cv.width = 1024; cv.height = 256;
+    const c = cv.getContext('2d'), im = c.createImageData(cv.width, cv.height);
+    let seed = 8131;
+    for (let y = 0; y < cv.height; y++) for (let x = 0; x < cv.width; x++) {
+      seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0;
+      const n = (seed >>> 24) / 255, v = 36 + n * 12 + 2 * Math.sin(y * 2.9) + 2 * Math.sin(x * .12 + y * .6);
+      const i = 4 * (y * cv.width + x); im.data[i] = v; im.data[i + 1] = v; im.data[i + 2] = v + 1; im.data[i + 3] = 255;
+    }
+    c.putImageData(im, 0, 0);
+    if (kind !== 'slick') {
+      c.strokeStyle = '#111315'; c.lineWidth = kind === 'wet' ? 6 : 4;
+      for (const y of (kind === 'wet' ? [58, 94, 162, 198] : [80, 176])) { c.beginPath(); c.moveTo(0, y); c.lineTo(1024, y); c.stroke(); }
+      const step = kind === 'wet' ? 36 : 64;
+      for (let x = -step; x <= 1024 + step; x += step) {
+        c.beginPath(); c.moveTo(x, 30); c.lineTo(x + 20, 114); c.moveTo(x + 20, 142); c.lineTo(x, 226); c.stroke();
+      }
+    }
+    // Uneven shoulder scuffs and one factory chalk mark break rotational symmetry.
+    c.fillStyle = '#858274'; c.fillRect(77, 84, 5, 80); c.fillStyle = '#68665e'; c.fillRect(87, 91, 3, 56);
+    const map = new THREE.CanvasTexture(cv); map.encoding = THREE.sRGBEncoding; map.wrapS = map.wrapT = THREE.RepeatWrapping; map.anisotropy = 8;
+    const bump = map.clone(); bump.encoding = THREE.LinearEncoding; bump.needsUpdate = true;
+    const mat = new THREE.MeshStandardMaterial({ color: 0xffffff, map, bumpMap: bump, bumpScale: kind === 'slick' ? 0.002 : 0.012, roughness: 0.86, metalness: 0, envMapIntensity: 0.3 });
+    treadCache.set(kind, mat); return mat;
+  }
+
+  let sidewallMap = null;
+  function sidewallTexture() {
+    if (sidewallMap) return sidewallMap;
+    const THREE = T(), cv = document.createElement('canvas'); cv.width = cv.height = 512;
+    const c = cv.getContext('2d'); c.translate(256, 256); c.fillStyle = '#ffffff'; c.strokeStyle = '#ffffff';
+    const letters = (text, angle, radius, font, spacing) => {
+      c.font = font; c.textAlign = 'center'; c.textBaseline = 'middle';
+      [...text].forEach((letter, i) => { const a = angle + (i - (text.length - 1) / 2) * spacing; c.save(); c.rotate(a); c.fillText(letter, 0, -radius); c.restore(); });
+    };
+    letters('RM RACING', 0, 225, 'bold 27px Arial', 0.13);
+    letters('PERFORMANCE', Math.PI, 225, 'bold 18px Arial', 0.103);
+    c.lineWidth = 4;
+    for (const [a, b] of [[0.16, 0.56], [2.69, 2.99], [3.63, 4.04]]) { c.beginPath(); c.arc(0, 0, 247, a, b); c.stroke(); }
+    c.save(); c.rotate(0.96); c.beginPath(); c.moveTo(-11, -248); c.lineTo(11, -248); c.lineTo(0, -221); c.fill(); c.restore();
+    c.globalAlpha = 0.65; letters('305 / 720 R18', -Math.PI / 2, 231, '11px monospace', 0.05);
+    c.save(); c.rotate(Math.PI / 2); for (let i = 0; i < 19; i++) c.fillRect(-26 + i * 3, -236, i % 3 ? 1 : 2, 17); c.restore();
+    sidewallMap = new THREE.CanvasTexture(cv); sidewallMap.encoding = THREE.sRGBEncoding; sidewallMap.anisotropy = 8; return sidewallMap;
+  }
+
+  const wheelGeometry = new Map();
+  function addDetailedWheel(roll, r, w, side, importedHub) {
+    const THREE = T(), M = mats(THREE), key = r.toFixed(4) + '/' + w.toFixed(4);
+    if (!wheelGeometry.has(key)) {
+      const tyre = tyreGeo(r, w), rim = new THREE.CylinderGeometry(r * .6, r * .6, w * .9, 48); rim.rotateZ(Math.PI / 2);
+      wheelGeometry.set(key, { tyre, rim });
+    }
+    const geos = wheelGeometry.get(key), rubber = new THREE.Mesh(geos.tyre, treadMaterial(2)); rubber.castShadow = rubber.receiveShadow = true; rubber.name = 'Rolling rubber tread'; rubber.userData.keep = true; roll.add(rubber);
+    if (!importedHub) { const rim = new THREE.Mesh(geos.rim, M.rim); rim.castShadow = true; rim.userData.keep = true; roll.add(rim); }
+    // A metallic centre lock and asymmetric spoke faces remain legible from a chase view.
+    const pieces = [], axle = side * (w * .5 + .002);
+    const hoop = new THREE.TorusGeometry(r * .575, r * .017, 5, 40); hoop.rotateY(Math.PI / 2); hoop.translate(axle, 0, 0); pieces.push(hoop);
+    for (let i = 0; i < 10; i++) {
+      const a = i * Math.PI * .2, spoke = new THREE.BoxGeometry(.01, r * .41, r * .035);
+      spoke.rotateX(a); spoke.translate(axle, Math.cos(a) * r * .31, Math.sin(a) * r * .31); pieces.push(spoke);
+    }
+    if (THREE.BufferGeometryUtils) {
+      const spokes = new THREE.Mesh(THREE.BufferGeometryUtils.mergeBufferGeometries(pieces), M.rim); spokes.castShadow = true; roll.add(spokes);
+      pieces.forEach(p => p.dispose());
+    }
+    const nut = new THREE.Mesh(new THREE.CylinderGeometry(r * .13, r * .13, .025, 6), M.centreLock); nut.rotation.z = Math.PI / 2; nut.position.x = axle + side * .018; roll.add(nut);
+    return rubber;
+  }
+
+  let contactMap = null;
+  function addContactShadow(g, width, length) {
+    const THREE = T();
+    if (!contactMap) {
+      const cv = document.createElement('canvas'); cv.width = cv.height = 128;
+      const c = cv.getContext('2d'), grad = c.createRadialGradient(64,64,10,64,64,64);
+      grad.addColorStop(0,'rgba(0,0,0,0.8)'); grad.addColorStop(.55,'rgba(0,0,0,0.4)'); grad.addColorStop(1,'rgba(0,0,0,0)');
+      c.fillStyle=grad;c.fillRect(0,0,128,128); contactMap = new THREE.CanvasTexture(cv);
+    }
+    const mat = new THREE.MeshBasicMaterial({map:contactMap,transparent:true,opacity:.22,depthWrite:false,polygonOffset:true,polygonOffsetFactor:-1});
+    mat.userData.noWet = true;
+    const m = new THREE.Mesh(new THREE.PlaneGeometry(width,length),mat);m.rotation.x=-Math.PI/2;m.position.y=.022;m.name='Underfloor contact shadow';g.add(m);
+  }
+  window.F1Detail = { treadMaterial, sidewallTexture, addDetailedWheel, addContactShadow, carbonMaterial: () => mats(T()).carbon };
 
   let shared = null;
   function mats(THREE) {
@@ -103,6 +192,7 @@
       carbonMatte: new THREE.MeshStandardMaterial({ color: 0xcfcfcf, map: weaveTex(THREE).map, normalMap: weaveTex(THREE).normal, normalScale: new THREE.Vector2(0.5, 0.5), roughness: 0.72, metalness: 0.1 }),
       rubber: new THREE.MeshStandardMaterial({ color: 0x121212, roughness: 0.88, metalness: 0, envMapIntensity: 0.25 }),
       rim: new THREE.MeshStandardMaterial({ color: 0x2a2d31, roughness: 0.35, metalness: 0.85, envMapIntensity: 0.8 }),
+      centreLock: new THREE.MeshStandardMaterial({ color: 0xa39062, roughness: 0.3, metalness: 0.95 }),
       susp: new THREE.MeshStandardMaterial({ color: 0x1a1c20, roughness: 0.5, metalness: 0.4 }),
       glassDark: new THREE.MeshStandardMaterial({ color: 0x050607, roughness: 0.15, metalness: 0.2 }),
       rain: new THREE.MeshBasicMaterial({ color: 0xff2a1f }),
@@ -190,10 +280,8 @@
     const mkWheel = (x, z, r, w, isFront) => {
       const pivot = new THREE.Group(); pivot.position.set(x, r, z); g.add(pivot);
       const roll = new THREE.Group(); pivot.add(roll);
-      const tm = new THREE.Mesh(tyreGeo(r, w), M.rubber); tm.castShadow = true; roll.add(tm);
-      const cover = new THREE.Mesh(new THREE.CylinderGeometry(r * 0.6, r * 0.6, w * 0.96, 24), M.rim); cover.rotation.z = Math.PI / 2; roll.add(cover);
-      const disc = new THREE.Mesh(new THREE.CircleGeometry(r * 0.42, 20), paint); disc.rotation.y = Math.sign(x) * Math.PI / 2; disc.position.x = Math.sign(x) * (w * 0.49); roll.add(disc);
-      wheels.push({ roll, r });
+      const tyre = addDetailedWheel(roll, r, w, Math.sign(x), false);
+      wheels.push({ roll, pivot, r, width: w, front: isFront, tyre });
       if (isFront) front.push(pivot);
       // wishbones back to the chassis
       for (const [dy, dz] of [[0.08, -0.15], [0.08, 0.15], [-0.08, -0.12], [-0.08, 0.12]]) {
@@ -204,6 +292,19 @@
     };
     mkWheel(-0.8, -1.8, 0.36, 0.3, true); mkWheel(0.8, -1.8, 0.36, 0.3, true);
     mkWheel(-0.78, 1.62, 0.36, 0.4, false); mkWheel(0.78, 1.62, 0.36, 0.4, false);
+
+    // Cooling louvres, diffuser fences and a tow eye give close exterior views
+    // meaningful geometry without adding separate draw calls for every fin.
+    if (THREE.BufferGeometryUtils) {
+      const details = [];
+      for (const sx of [-1, 1]) for (let i = 0; i < 7; i++) {
+        const vent = new THREE.BoxGeometry(.16,.009,.027);vent.rotateZ(sx*.16);vent.translate(sx*.63,.618-i*.005,-.05+i*.085);details.push(vent);
+      }
+      for (let i = -3; i <= 3; i++) { const fence = new THREE.BoxGeometry(.012,.105,.39);fence.rotateX(-.23);fence.translate(i*.135,.19,2.29);details.push(fence); }
+      add(THREE.BufferGeometryUtils.mergeBufferGeometries(details),M.carbonMatte,0,0,0);details.forEach(d=>d.dispose());
+    }
+    const tow = add(new THREE.TorusGeometry(.032,.008,5,16),accent,0,.58,2.29);tow.rotation.y=Math.PI/2;
+    addContactShadow(g,1.95,5.4);
 
     // rain light (flashes in the wet) with its glow
     const rl = add(new THREE.BoxGeometry(0.16, 0.08, 0.03), M.rain, 0, 0.42, 2.46, false);

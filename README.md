@@ -76,6 +76,12 @@ Keyboard: W/↑ throttle, S/↓/Space brake, A/D steer, X drop hazard, C camera,
 +/- HUD range, [ ] traction control, ; ' ABS, , . brake balance, Esc stop. With a keyboard, "Keyboard brake:
 Driver's foot" (Setup) presses the pedal like a driver would: hardest at speed, easing as downforce fades.
 
+The camera selector on the driving view offers Cockpit, Chase, TV pod, Nose, Tyre view, Orbit and Overhead.
+In any view, drag on the scene to look around and use the mouse wheel to zoom (or change the cockpit field of
+view); double-click or Reset returns the selected view to its default. The car models include rolling, compound-
+specific tread, asymmetric sidewall lettering, brake hardware and close-up suspension details, while the track
+uses procedural sky clouds, contact shadows, asphalt aggregate and wet-surface reflections.
+
 ### Code layout
 
 - `physics/*.c` (C): the car (`vehicle.c`), the 77 GHz radar sensor and tracker (`radar.c`), tyre spray (`spray.c`).
@@ -85,7 +91,8 @@ Driver's foot" (Setup) presses the pedal like a driver would: hardest at speed, 
 - `tools/` (Python): `build.py` compiles the core with Zig; `test_physics.py` checks it against numpy reference
   models and real-world figures; `physics.py` is the ctypes binding.
 - `public/css/` (CSS): all styling, including the spray-on-visor blur and the car-behind edge glow.
-- `public/js/game.js`, `public/js/wheel.js`: scene, driver model, HUD drawing and UI (three.js), talking to the
+- `public/js/game.js`, `public/js/camera.js`, `public/js/wheel.js`: scene, driver model, camera controls, HUD drawing
+  and UI (three.js), talking to the
   core. `public/game.html` and `public/wheel.html` are markup only.
 
 ### Radar

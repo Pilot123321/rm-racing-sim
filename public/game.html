@@ -38,6 +38,12 @@
     <div class="status" id="status"></div>
     <div class="toast" id="toast" hidden></div>
     <button class="drop" id="dropBtn" hidden>Drop hazard ahead · X</button>
+    <div class="camera-panel" role="group" aria-label="Camera controls">
+      <div class="camera-row"><label for="cameraSelect">View</label><select id="cameraSelect" aria-describedby="cameraHint">
+        <option value="cockpit">Cockpit</option><option value="chase">Chase</option><option value="tv">TV pod</option><option value="nose">Nose</option><option value="wheel">Tyre view</option><option value="orbit">Orbit</option><option value="overhead">Overhead</option>
+      </select><button id="cameraReset" title="Reset the current camera position and zoom">Reset</button></div>
+      <p id="cameraHint">Drag to look · scroll to zoom · double-click to reset</p>
+    </div>
     <div class="stagebtns">
       <button class="pcvisor" id="pcVisor" aria-pressed="false" title="Show the visor HUD on this screen (V)">Visor HUD <b>Off</b></button>
     </div>
@@ -79,6 +85,7 @@
       <div class="opt"><span class="opt-l">Visor light</span><div class="seg" role="group" aria-label="Visor light"><button id="visOn" aria-pressed="true">On</button><button id="visOff" aria-pressed="false">Off</button></div></div>
       <div class="opt"><span class="opt-l">Traffic</span><div class="seg" role="group" aria-label="Traffic in free drive"><button id="tr6" aria-pressed="false">6</button><button id="tr12" aria-pressed="true">12</button><button id="tr20" aria-pressed="false">20</button></div></div>
       <div class="opt"><span class="opt-l">View</span><div class="seg" role="group" aria-label="Camera"><button id="camCock" aria-pressed="true">Cockpit</button><button id="camChase" aria-pressed="false">Chase</button></div></div>
+      <div class="opt"><label class="opt-l" for="cameraPreset">More camera views</label><select id="cameraPreset" class="camera-preset"><option value="cockpit">Cockpit</option><option value="chase">Chase</option><option value="tv">TV pod</option><option value="nose">Nose</option><option value="wheel">Tyre view</option><option value="orbit">Orbit</option><option value="overhead">Overhead</option></select></div>
       <div class="opt"><span class="opt-l">Tyres</span><div class="seg tyres" role="group" aria-label="Tyre compound"><button id="tyAuto" aria-pressed="true">Auto</button><button id="ty0" aria-pressed="false"><i class="tc c0"></i>Soft</button><button id="ty1" aria-pressed="false"><i class="tc c1"></i>Med</button><button id="ty2" aria-pressed="false"><i class="tc c2"></i>Hard</button><button id="ty3" aria-pressed="false"><i class="tc c3"></i>Inter</button><button id="ty4" aria-pressed="false"><i class="tc c4"></i>Wet</button></div></div>
       <div class="opt rain"><label class="opt-l" for="rain">Rain<output id="rainOut">60%</output></label><input type="range" id="rain" min="0" max="100" value="0"></div>
       <div class="opt rain"><label class="opt-l" for="fog">Fog<output id="fogOut">Clear</output></label><input type="range" id="fog" min="0" max="100" value="0"></div>
@@ -106,7 +113,8 @@
         <div><dt>; '</dt><dd>ABS − / +</dd></div>
         <div><dt>, .</dt><dd>Brake balance rear / front</dd></div>
         <div><dt>+ / −</dt><dd>Zoom radar</dd></div>
-        <div><dt>C · N</dt><dd>Camera · HUD size</dd></div>
+        <div><dt>C · N</dt><dd>Cycle camera views · HUD size</dd></div>
+        <div><dt>Mouse drag / scroll</dt><dd>Look or orbit / zoom · double-click to reset</dd></div>
         <div><dt>Esc</dt><dd>Close this sheet · stop the run</dd></div>
       </dl>
     </section>
@@ -205,6 +213,7 @@
 <script src="/vendor/GLTFLoader.js"></script>
 <script src="/vendor/BufferGeometryUtils.js"></script>
 <script src="/f1car.js"></script>
+<script src="/js/camera.js"></script>
 <script src="/js/game.js"></script>
 </body>
 </html>
